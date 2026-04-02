@@ -2,6 +2,7 @@
 
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
+import { loginUser } from "../login/actions";
 
 export async function registerUser(formData: FormData) {
   const name = formData.get("name") as string;
@@ -26,7 +27,8 @@ export async function registerUser(formData: FormData) {
     }
 
     if (existing) {
-      redirect("/register?error=EmailExists");
+      console.log("Email already exists, trying to log in instead");
+      return await loginUser(formData);
     }
 
     const { error: insertError } = await supabase.from("users").insert({
@@ -50,5 +52,5 @@ export async function registerUser(formData: FormData) {
     redirect("/register?error=Error");
   }
 
-  redirect("/login?success=1");
+  return await loginUser(formData);
 }
