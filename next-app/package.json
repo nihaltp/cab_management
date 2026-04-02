@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
     "iron-session": "^8.0.4",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.7.0",
