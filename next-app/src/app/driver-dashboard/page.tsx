@@ -10,6 +10,7 @@ type DriverBookingRow = {
   pickup_location: string | null;
   drop_location: string | null;
   status: string | null;
+  cab_id: number | null;
   user_name: string | null;
   user_phone: string | null;
   cab_number: string | null;
@@ -23,28 +24,51 @@ export default async function DriverDashboardPage() {
 
   const supabase = getSupabaseAdminClient();
 
-  const { data: cabData, error: cabError } = await supabase
+  const { data: cabRows, error: cabError } = await supabase
     .from("cabs")
     .select("cab_id, cab_number, cab_type, ac_type")
-    .eq("driver_id", session.driverId)
-    .maybeSingle();
+    .eq("driver_id", session.driverId);
 
   if (cabError) {
     throw cabError;
   }
 
-  const cabId = cabData?.cab_id ?? 0;
+  const cabMap = new Map<number, { cab_number: string | null; cab_type: string | null; ac_type: string | null }>();
+  for (const cab of cabRows ?? []) {
+    cabMap.set(cab.cab_id, {
+      cab_number: cab.cab_number,
+      cab_type: cab.cab_type,
+      ac_type: cab.ac_type,
+    });
+  }
 
-  const { data: bookingRows, error: bookingError } = await supabase
-    .from("booking")
-    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id")
-    .eq("cab_id", cabId)
-    .neq("status", "Cancelled")
-    .order("booking_date", { ascending: false })
-    .order("booking_time", { ascending: false });
+  const cabIds = [...cabMap.keys()];
 
-  if (bookingError) {
-    throw bookingError;
+  const bookingRows = [] as Array<{
+    booking_id: number;
+    booking_date: string;
+    booking_time: string | null;
+    pickup_location: string | null;
+    drop_location: string | null;
+    status: string | null;
+    user_id: number | null;
+    cab_id: number | null;
+  }>;
+
+  if (cabIds.length > 0) {
+    const { data: rows, error: bookingError } = await supabase
+      .from("booking")
+      .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id, cab_id")
+      .in("cab_id", cabIds)
+      .neq("status", "Cancelled")
+      .order("booking_date", { ascending: false })
+      .order("booking_time", { ascending: false });
+
+    if (bookingError) {
+      throw bookingError;
+    }
+
+    bookingRows.push(...(rows ?? []));
   }
 
   const userIds = [...new Set((bookingRows ?? [])
@@ -74,11 +98,12 @@ export default async function DriverDashboardPage() {
     pickup_location: booking.pickup_location,
     drop_location: booking.drop_location,
     status: booking.status,
+    cab_id: booking.cab_id,
     user_name: booking.user_id ? userMap.get(booking.user_id)?.name ?? null : null,
     user_phone: booking.user_id ? userMap.get(booking.user_id)?.phone ?? null : null,
-    cab_number: cabData?.cab_number ?? null,
-    cab_type: cabData?.cab_type ?? null,
-    ac_type: cabData?.ac_type ?? null,
+    cab_number: booking.cab_id ? cabMap.get(booking.cab_id)?.cab_number ?? null : null,
+    cab_type: booking.cab_id ? cabMap.get(booking.cab_id)?.cab_type ?? null : null,
+    ac_type: booking.cab_id ? cabMap.get(booking.cab_id)?.ac_type ?? null : null,
   }));
 
   const total = bookings.length;
