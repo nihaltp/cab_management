@@ -205,10 +205,10 @@ export default async function AdminDashboardPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <div className="text-slate-700 max-w-[200px] truncate" title={row.pickup_location}>
+                        <div className="text-slate-700 max-w-[200px] truncate" title={row.pickup_location ?? undefined}>
                           <span className="text-xs text-slate-500 inline-block w-10">Origin:</span> <span className="font-medium text-slate-800">{row.pickup_location}</span>
                         </div>
-                        <div className="text-slate-700 max-w-[200px] truncate mt-1.5" title={row.drop_location}>
+                        <div className="text-slate-700 max-w-[200px] truncate mt-1.5" title={row.drop_location ?? undefined}>
                           <span className="text-xs text-slate-500 inline-block w-10">Dest:</span> <span className="font-medium text-slate-800">{row.drop_location}</span>
                         </div>
                       </td>

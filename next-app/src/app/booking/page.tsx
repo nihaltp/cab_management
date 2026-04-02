@@ -88,8 +88,9 @@ export default async function BookingPage({
 
   // Group cabs for select dropdown
   const groupedCabs = cabs.reduce((acc, cab) => {
-    if (!acc[cab.cab_type]) acc[cab.cab_type] = [];
-    acc[cab.cab_type].push(cab);
+    const cabType = cab.cab_type ?? "Other";
+    if (!acc[cabType]) acc[cabType] = [];
+    acc[cabType].push(cab);
     return acc;
   }, {} as Record<string, CabRow[]>);
 

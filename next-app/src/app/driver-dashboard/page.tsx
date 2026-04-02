@@ -152,10 +152,10 @@ export default async function DriverDashboardPage() {
                         <div className="text-xs text-slate-500 mt-1">{row.user_phone || '-'}</div>
                       </td>
                       <td className="py-4 px-6">
-                        <div className="text-slate-700 max-w-[150px] truncate" title={row.pickup_location}>
+                        <div className="text-slate-700 max-w-[150px] truncate" title={row.pickup_location ?? undefined}>
                           <span className="text-xs text-slate-500 inline-block w-8">From:</span> {row.pickup_location}
                         </div>
-                        <div className="text-slate-700 max-w-[150px] truncate mt-1" title={row.drop_location}>
+                        <div className="text-slate-700 max-w-[150px] truncate mt-1" title={row.drop_location ?? undefined}>
                           <span className="text-xs text-slate-500 inline-block w-8">To:</span> {row.drop_location}
                         </div>
                       </td>

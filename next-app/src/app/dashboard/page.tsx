@@ -157,8 +157,8 @@ export default async function DashboardPage() {
                         <div className="font-medium text-slate-900">{new Date(row.booking_date).toLocaleDateString()}</div>
                         <div className="text-xs text-slate-500 mt-1">{row.booking_time || '-'}</div>
                       </td>
-                      <td className="py-4 px-6 text-slate-700 max-w-[150px] truncate" title={row.pickup_location}>{row.pickup_location}</td>
-                      <td className="py-4 px-6 text-slate-700 max-w-[150px] truncate" title={row.drop_location}>{row.drop_location}</td>
+                      <td className="py-4 px-6 text-slate-700 max-w-[150px] truncate" title={row.pickup_location ?? undefined}>{row.pickup_location}</td>
+                      <td className="py-4 px-6 text-slate-700 max-w-[150px] truncate" title={row.drop_location ?? undefined}>{row.drop_location}</td>
                       <td className="py-4 px-6">
                         <div className="font-medium text-slate-900">{row.cab_number || '-'}</div>
                         <div className="text-xs px-3 py-1 mt-1.5 bg-slate-100 text-slate-600 rounded-full inline-block border border-slate-200">{row.cab_type || '-'}</div>

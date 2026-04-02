@@ -19,15 +19,9 @@ export async function bookCab(formData: FormData) {
 
   // Get current time HH:MM:SS
   const now = new Date();
-  const time = now.toTimeString().split(' ')[0];
+  const time = now.toTimeString().split(" ")[0];
 
   try {
-    await pool.execute(
-      "INSERT INTO booking (user_id, cab_id, pickup_location, drop_location, booking_date, booking_time, status) VALUES (?, ?, ?, ?, ?, ?, 'Confirmed')",
-      [session.userId, cabId, pickup, drop, date, time]
-    );
-  } catch (err) {
-    console.error("Booking error", err);
     const supabase = getSupabaseAdminClient();
     const { error } = await supabase.from("booking").insert({
       user_id: session.userId,
@@ -42,4 +36,10 @@ export async function bookCab(formData: FormData) {
     if (error) {
       throw error;
     }
+  } catch (err) {
+    console.error("Booking error", err);
+    redirect("/booking?error=1");
+  }
+
+  redirect("/booking?success=1");
 }
