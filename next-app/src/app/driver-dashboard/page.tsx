@@ -1,37 +1,90 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { updateTripStatus } from "./actions";
+
+type DriverBookingRow = {
+  booking_id: number;
+  booking_date: string;
+  booking_time: string | null;
+  pickup_location: string | null;
+  drop_location: string | null;
+  status: string | null;
+  user_name: string | null;
+  user_phone: string | null;
+  cab_number: string | null;
+  cab_type: string | null;
+  ac_type: string | null;
+};
 
 export default async function DriverDashboardPage() {
   const session = await getSession();
   if (!session.driverId) redirect("/driver-login");
 
-  // Get driver's cab
-  const [cabRows] = await pool.execute<RowDataPacket[]>(
-    "SELECT cab_id FROM cabs WHERE driver_id = ?",
-    [session.driverId]
-  );
-  const cabId = cabRows[0]?.cab_id || 0;
+  const supabase = getSupabaseAdminClient();
 
-  // Get bookings
-  const [bookings] = await pool.execute<RowDataPacket[]>(`
-    SELECT b.booking_id, b.booking_date, b.booking_time,
-           b.pickup_location, b.drop_location, b.status,
-           u.name as user_name, u.phone as user_phone,
-           c.cab_number, c.cab_type, c.ac_type
-    FROM booking b
-    LEFT JOIN users u ON b.user_id = u.user_id
-    LEFT JOIN cabs c ON b.cab_id = c.cab_id
-    WHERE b.cab_id = ? AND b.status != 'Cancelled'
-    ORDER BY b.booking_date DESC, b.booking_time DESC
-  `, [cabId]);
+  const { data: cabData, error: cabError } = await supabase
+    .from("cabs")
+    .select("cab_id, cab_number, cab_type, ac_type")
+    .eq("driver_id", session.driverId)
+    .maybeSingle();
+
+  if (cabError) {
+    throw cabError;
+  }
+
+  const cabId = cabData?.cab_id ?? 0;
+
+  const { data: bookingRows, error: bookingError } = await supabase
+    .from("booking")
+    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id")
+    .eq("cab_id", cabId)
+    .neq("status", "Cancelled")
+    .order("booking_date", { ascending: false })
+    .order("booking_time", { ascending: false });
+
+  if (bookingError) {
+    throw bookingError;
+  }
+
+  const userIds = [...new Set((bookingRows ?? [])
+    .map((booking) => booking.user_id)
+    .filter((userId): userId is number => typeof userId === "number"))];
+
+  const userMap = new Map<number, { name: string | null; phone: string | null }>();
+  if (userIds.length > 0) {
+    const { data: users, error: usersError } = await supabase
+      .from("users")
+      .select("user_id, name, phone")
+      .in("user_id", userIds);
+
+    if (usersError) {
+      throw usersError;
+    }
+
+    for (const user of users ?? []) {
+      userMap.set(user.user_id, { name: user.name, phone: user.phone });
+    }
+  }
+
+  const bookings: DriverBookingRow[] = (bookingRows ?? []).map((booking) => ({
+    booking_id: booking.booking_id,
+    booking_date: booking.booking_date,
+    booking_time: booking.booking_time,
+    pickup_location: booking.pickup_location,
+    drop_location: booking.drop_location,
+    status: booking.status,
+    user_name: booking.user_id ? userMap.get(booking.user_id)?.name ?? null : null,
+    user_phone: booking.user_id ? userMap.get(booking.user_id)?.phone ?? null : null,
+    cab_number: cabData?.cab_number ?? null,
+    cab_type: cabData?.cab_type ?? null,
+    ac_type: cabData?.ac_type ?? null,
+  }));
 
   const total = bookings.length;
-  const picked = bookings.filter(b => b.status === "Picked").length;
-  const dropped = bookings.filter(b => b.status === "Dropped").length;
-  const confirmed = bookings.filter(b => b.status === "Confirmed").length;
+  const picked = bookings.filter((booking) => booking.status === "Picked").length;
+  const dropped = bookings.filter((booking) => booking.status === "Dropped").length;
+  const confirmed = bookings.filter((booking) => booking.status === "Confirmed").length;
 
   return (
     <div className="flex-1 bg-transparent py-8 px-4 sm:px-6 lg:px-8 relative z-10">

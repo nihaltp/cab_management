@@ -1,9 +1,18 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { bookCab } from "./actions";
+
+type CabRow = {
+  cab_id: number;
+  cab_number: string | null;
+  cab_type: string | null;
+  ac_type: string | null;
+  driver_id: number | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+};
 
 export default async function BookingPage({
   searchParams,
@@ -19,29 +28,56 @@ export default async function BookingPage({
   const error = typeof resolvedParams?.error === "string" ? "Booking failed. Please try again." : null;
   const success = typeof resolvedParams?.success === "string" ? "Cab booked successfully!" : null;
 
-  let query = `
-    SELECT c.cab_id, c.cab_number, c.cab_type, c.ac_type, d.name as driver_name, d.phone as driver_phone
-    FROM cabs c
-    LEFT JOIN drivers d ON c.driver_id = d.driver_id
-  `;
-  const whereClauses = [];
-  const values = [];
+  const supabase = getSupabaseAdminClient();
+  let cabsQuery = supabase
+    .from("cabs")
+    .select("cab_id, cab_number, cab_type, ac_type, driver_id");
 
   if (acFilter !== "All") {
-    whereClauses.push("c.ac_type = ?");
-    values.push(acFilter);
+    cabsQuery = cabsQuery.eq("ac_type", acFilter);
   }
+
   if (typeFilter !== "All") {
-    whereClauses.push("c.cab_type = ?");
-    values.push(typeFilter);
+    cabsQuery = cabsQuery.eq("cab_type", typeFilter);
   }
 
-  if (whereClauses.length > 0) {
-    query += " WHERE " + whereClauses.join(" AND ");
-  }
-  query += " ORDER BY c.cab_type, c.ac_type";
+  const { data: cabRows, error: cabError } = await cabsQuery
+    .order("cab_type", { ascending: true })
+    .order("ac_type", { ascending: true });
 
-  const [cabs] = await pool.execute<RowDataPacket[]>(query, values);
+  if (cabError) {
+    throw cabError;
+  }
+
+  const driverIds = [...new Set((cabRows ?? [])
+    .map((cab) => cab.driver_id)
+    .filter((driverId): driverId is number => typeof driverId === "number"))];
+
+  const driverMap = new Map<number, { name: string | null; phone: string | null }>();
+  if (driverIds.length > 0) {
+    const { data: drivers, error: driverError } = await supabase
+      .from("drivers")
+      .select("driver_id, name, phone")
+      .in("driver_id", driverIds);
+
+    if (driverError) {
+      throw driverError;
+    }
+
+    for (const driver of drivers ?? []) {
+      driverMap.set(driver.driver_id, { name: driver.name, phone: driver.phone });
+    }
+  }
+
+  const cabs: CabRow[] = (cabRows ?? []).map((cab) => {
+    const driver = cab.driver_id ? driverMap.get(cab.driver_id) : null;
+
+    return {
+      ...cab,
+      driver_name: driver?.name ?? null,
+      driver_phone: driver?.phone ?? null,
+    };
+  });
 
   const filterBtnClass = (active: boolean) =>
     `px-4 py-1.5 rounded-full text-sm font-medium transition ${
@@ -55,7 +91,7 @@ export default async function BookingPage({
     if (!acc[cab.cab_type]) acc[cab.cab_type] = [];
     acc[cab.cab_type].push(cab);
     return acc;
-  }, {} as Record<string, typeof cabs>);
+  }, {} as Record<string, CabRow[]>);
 
   return (
     <div className="flex-1 bg-transparent py-10 px-4 sm:px-6 lg:px-8 relative z-10">

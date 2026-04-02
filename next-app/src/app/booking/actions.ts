@@ -1,6 +1,6 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -28,8 +28,18 @@ export async function bookCab(formData: FormData) {
     );
   } catch (err) {
     console.error("Booking error", err);
-    redirect("/booking?error=1");
-  }
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("booking").insert({
+      user_id: session.userId,
+      cab_id: Number(cabId),
+      pickup_location: pickup,
+      drop_location: drop,
+      booking_date: date,
+      booking_time: time,
+      status: "Confirmed",
+    });
 
-  redirect("/booking?success=1");
+    if (error) {
+      throw error;
+    }
 }

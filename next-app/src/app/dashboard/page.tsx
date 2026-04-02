@@ -1,25 +1,96 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { cancelBooking } from "./actions";
+
+type DashboardBookingRow = {
+  booking_id: number;
+  booking_date: string;
+  booking_time: string | null;
+  pickup_location: string | null;
+  drop_location: string | null;
+  status: string | null;
+  cab_id: number | null;
+  cab_number: string | null;
+  cab_type: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+};
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session.userId) redirect("/login");
 
-  const [bookings] = await pool.execute<RowDataPacket[]>(`
-    SELECT b.booking_id, b.booking_date, b.booking_time,
-           b.pickup_location, b.drop_location, b.status,
-           c.cab_number, c.cab_type,
-           d.name as driver_name, d.phone as driver_phone
-    FROM booking b
-    LEFT JOIN cabs c ON b.cab_id = c.cab_id
-    LEFT JOIN drivers d ON c.driver_id = d.driver_id
-    WHERE b.user_id = ?
-    ORDER BY b.booking_date DESC, b.booking_time DESC
-  `, [session.userId]);
+  const supabase = getSupabaseAdminClient();
+  const { data: bookingRows, error: bookingError } = await supabase
+    .from("booking")
+    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, cab_id")
+    .eq("user_id", session.userId)
+    .order("booking_date", { ascending: false })
+    .order("booking_time", { ascending: false });
+
+  if (bookingError) {
+    throw bookingError;
+  }
+
+  const cabIds = [...new Set((bookingRows ?? [])
+    .map((booking) => booking.cab_id)
+    .filter((cabId): cabId is number => typeof cabId === "number"))];
+
+  const cabMap = new Map<number, { cab_number: string | null; cab_type: string | null; driver_id: number | null }>();
+  const driverMap = new Map<number, { name: string | null; phone: string | null }>();
+
+  if (cabIds.length > 0) {
+    const { data: cabRows, error: cabError } = await supabase
+      .from("cabs")
+      .select("cab_id, cab_number, cab_type, driver_id")
+      .in("cab_id", cabIds);
+
+    if (cabError) {
+      throw cabError;
+    }
+
+    for (const cab of cabRows ?? []) {
+      cabMap.set(cab.cab_id, {
+        cab_number: cab.cab_number,
+        cab_type: cab.cab_type,
+        driver_id: cab.driver_id,
+      });
+    }
+
+    const driverIds = [...new Set((cabRows ?? [])
+      .map((cab) => cab.driver_id)
+      .filter((driverId): driverId is number => typeof driverId === "number"))];
+
+    if (driverIds.length > 0) {
+      const { data: drivers, error: driverError } = await supabase
+        .from("drivers")
+        .select("driver_id, name, phone")
+        .in("driver_id", driverIds);
+
+      if (driverError) {
+        throw driverError;
+      }
+
+      for (const driver of drivers ?? []) {
+        driverMap.set(driver.driver_id, { name: driver.name, phone: driver.phone });
+      }
+    }
+  }
+
+  const bookings: DashboardBookingRow[] = (bookingRows ?? []).map((booking) => {
+    const cab = booking.cab_id ? cabMap.get(booking.cab_id) : null;
+    const driver = cab?.driver_id ? driverMap.get(cab.driver_id) : null;
+
+    return {
+      ...booking,
+      cab_number: cab?.cab_number ?? null,
+      cab_type: cab?.cab_type ?? null,
+      driver_name: driver?.name ?? null,
+      driver_phone: driver?.phone ?? null,
+    };
+  });
 
   return (
     <div className="flex-1 bg-transparent py-8 px-4 sm:px-6 lg:px-8 relative z-10">

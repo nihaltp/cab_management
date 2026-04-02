@@ -1,32 +1,139 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import pool from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { updateAdminTripStatus } from "./actions";
+
+type AdminBookingRow = {
+  booking_id: number;
+  booking_date: string;
+  booking_time: string | null;
+  pickup_location: string | null;
+  drop_location: string | null;
+  status: string | null;
+  user_name: string | null;
+  user_phone: string | null;
+  email: string | null;
+  cab_number: string | null;
+  cab_type: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  license_no: string | null;
+};
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session.adminId) redirect("/admin-login");
 
-  // Get stats
-  const [userCnt] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) as cnt FROM users");
-  const [bkgCnt] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) as cnt FROM booking");
-  const [cabCnt] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) as cnt FROM cabs");
-  const [drvCnt] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) as cnt FROM drivers");
+  const supabase = getSupabaseAdminClient();
 
-  // Get all bookings
-  const [bookings] = await pool.execute<RowDataPacket[]>(`
-    SELECT b.booking_id, b.booking_date, b.booking_time,
-           b.pickup_location, b.drop_location, b.status,
-           u.name as user_name, u.phone as user_phone, u.email,
-           c.cab_number, c.cab_type,
-           d.name as driver_name, d.phone as driver_phone, d.license_no
-    FROM booking b
-    LEFT JOIN users u ON b.user_id = u.user_id
-    LEFT JOIN cabs c ON b.cab_id = c.cab_id
-    LEFT JOIN drivers d ON c.driver_id = d.driver_id
-    ORDER BY b.booking_date DESC, b.booking_time DESC
-  `);
+  const [{ count: userCount, error: userCountError }, { count: bookingCount, error: bookingCountError }, { count: cabCount, error: cabCountError }, { count: driverCount, error: driverCountError }] = await Promise.all([
+    supabase.from("users").select("*", { count: "exact", head: true }),
+    supabase.from("booking").select("*", { count: "exact", head: true }),
+    supabase.from("cabs").select("*", { count: "exact", head: true }),
+    supabase.from("drivers").select("*", { count: "exact", head: true }),
+  ]);
+
+  const countErrors = [userCountError, bookingCountError, cabCountError, driverCountError].filter(Boolean);
+  if (countErrors.length > 0) {
+    throw countErrors[0];
+  }
+
+  const { data: bookingRows, error: bookingRowsError } = await supabase
+    .from("booking")
+    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id, cab_id")
+    .order("booking_date", { ascending: false })
+    .order("booking_time", { ascending: false });
+
+  if (bookingRowsError) {
+    throw bookingRowsError;
+  }
+
+  const userIds = [...new Set((bookingRows ?? [])
+    .map((booking) => booking.user_id)
+    .filter((userId): userId is number => typeof userId === "number"))];
+  const cabIds = [...new Set((bookingRows ?? [])
+    .map((booking) => booking.cab_id)
+    .filter((cabId): cabId is number => typeof cabId === "number"))];
+
+  const userMap = new Map<number, { name: string | null; phone: string | null; email: string | null }>();
+  const cabMap = new Map<number, { cab_number: string | null; cab_type: string | null; driver_id: number | null }>();
+  const driverMap = new Map<number, { name: string | null; phone: string | null; license_no: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: users, error: usersError } = await supabase
+      .from("users")
+      .select("user_id, name, phone, email")
+      .in("user_id", userIds);
+
+    if (usersError) {
+      throw usersError;
+    }
+
+    for (const user of users ?? []) {
+      userMap.set(user.user_id, { name: user.name, phone: user.phone, email: user.email });
+    }
+  }
+
+  if (cabIds.length > 0) {
+    const { data: cabs, error: cabsError } = await supabase
+      .from("cabs")
+      .select("cab_id, cab_number, cab_type, driver_id")
+      .in("cab_id", cabIds);
+
+    if (cabsError) {
+      throw cabsError;
+    }
+
+    for (const cab of cabs ?? []) {
+      cabMap.set(cab.cab_id, { cab_number: cab.cab_number, cab_type: cab.cab_type, driver_id: cab.driver_id });
+    }
+
+    const driverIds = [...new Set((cabs ?? [])
+      .map((cab) => cab.driver_id)
+      .filter((driverId): driverId is number => typeof driverId === "number"))];
+
+    if (driverIds.length > 0) {
+      const { data: drivers, error: driversError } = await supabase
+        .from("drivers")
+        .select("driver_id, name, phone, license_no")
+        .in("driver_id", driverIds);
+
+      if (driversError) {
+        throw driversError;
+      }
+
+      for (const driver of drivers ?? []) {
+        driverMap.set(driver.driver_id, {
+          name: driver.name,
+          phone: driver.phone,
+          license_no: driver.license_no,
+        });
+      }
+    }
+  }
+
+  const bookings: AdminBookingRow[] = (bookingRows ?? []).map((booking) => {
+    const user = booking.user_id ? userMap.get(booking.user_id) : null;
+    const cab = booking.cab_id ? cabMap.get(booking.cab_id) : null;
+    const driver = cab?.driver_id ? driverMap.get(cab.driver_id) : null;
+
+    return {
+      booking_id: booking.booking_id,
+      booking_date: booking.booking_date,
+      booking_time: booking.booking_time,
+      pickup_location: booking.pickup_location,
+      drop_location: booking.drop_location,
+      status: booking.status,
+      user_name: user?.name ?? null,
+      user_phone: user?.phone ?? null,
+      email: user?.email ?? null,
+      cab_number: cab?.cab_number ?? null,
+      cab_type: cab?.cab_type ?? null,
+      driver_name: driver?.name ?? null,
+      driver_phone: driver?.phone ?? null,
+      license_no: driver?.license_no ?? null,
+    };
+  });
 
   return (
     <div className="flex-1 bg-transparent py-8 px-4 sm:px-6 lg:px-8 relative z-10">
@@ -48,19 +155,19 @@ export default async function AdminDashboardPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="glass-card p-6 flex flex-col items-center hover:-translate-y-1 transition-transform border-slate-200 hover:border-blue-300">
-            <h2 className="text-4xl font-black text-slate-800 mb-2">{userCnt[0]?.cnt || 0}</h2>
+            <h2 className="text-4xl font-black text-slate-800 mb-2">{userCount || 0}</h2>
             <p className="text-slate-500 text-sm font-medium tracking-wide">Total Users</p>
           </div>
           <div className="glass-card p-6 flex flex-col items-center hover:-translate-y-1 transition-transform border-slate-200 hover:border-indigo-300">
-            <h2 className="text-4xl font-black text-indigo-600 mb-2">{bkgCnt[0]?.cnt || 0}</h2>
+            <h2 className="text-4xl font-black text-indigo-600 mb-2">{bookingCount || 0}</h2>
             <p className="text-slate-500 text-sm font-medium tracking-wide">Total Bookings</p>
           </div>
           <div className="glass-card p-6 flex flex-col items-center hover:-translate-y-1 transition-transform border-slate-200 hover:border-violet-300">
-            <h2 className="text-4xl font-black text-violet-600 mb-2">{cabCnt[0]?.cnt || 0}</h2>
+            <h2 className="text-4xl font-black text-violet-600 mb-2">{cabCount || 0}</h2>
             <p className="text-slate-500 text-sm font-medium tracking-wide">Total Cabs</p>
           </div>
           <div className="glass-card p-6 flex flex-col items-center hover:-translate-y-1 transition-transform border-slate-200 hover:border-rose-300">
-            <h2 className="text-4xl font-black text-rose-600 mb-2">{drvCnt[0]?.cnt || 0}</h2>
+            <h2 className="text-4xl font-black text-rose-600 mb-2">{driverCount || 0}</h2>
             <p className="text-slate-500 text-sm font-medium tracking-wide">Total Drivers</p>
           </div>
         </div>

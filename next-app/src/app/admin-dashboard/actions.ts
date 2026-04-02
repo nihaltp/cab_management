@@ -1,6 +1,6 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
@@ -14,10 +14,16 @@ export async function updateAdminTripStatus(formData: FormData) {
   if (newStatus !== "Picked" && newStatus !== "Dropped") return;
 
   try {
-    await pool.execute(
-      "UPDATE booking SET status = ? WHERE booking_id = ?",
-      [newStatus, bookingId]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("booking")
+      .update({ status: newStatus })
+      .eq("booking_id", Number(bookingId));
+
+    if (error) {
+      throw error;
+    }
+
     revalidatePath("/admin-dashboard");
   } catch (err) {
     console.error("Status update failed", err);

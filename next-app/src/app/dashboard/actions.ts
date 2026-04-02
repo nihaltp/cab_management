@@ -1,6 +1,6 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
@@ -11,10 +11,17 @@ export async function cancelBooking(formData: FormData) {
   const bookingId = formData.get("booking_id");
 
   try {
-    await pool.execute(
-      "UPDATE booking SET status = 'Cancelled' WHERE booking_id = ? AND user_id = ?",
-      [bookingId, session.userId]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("booking")
+      .update({ status: "Cancelled" })
+      .eq("booking_id", Number(bookingId))
+      .eq("user_id", session.userId);
+
+    if (error) {
+      throw error;
+    }
+
     revalidatePath("/dashboard");
   } catch (err) {
     console.error("Cancel failed", err);

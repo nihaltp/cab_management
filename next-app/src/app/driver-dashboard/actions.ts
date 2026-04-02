@@ -1,6 +1,6 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
@@ -17,10 +17,16 @@ export async function updateTripStatus(formData: FormData) {
   try {
     // Ideally we should also verify that the booking belongs to this driver's cab, 
     // but following PHP logic exactly: UPDATE booking SET status=? WHERE booking_id=?
-    await pool.execute(
-      "UPDATE booking SET status = ? WHERE booking_id = ?",
-      [newStatus, bookingId]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("booking")
+      .update({ status: newStatus })
+      .eq("booking_id", Number(bookingId));
+
+    if (error) {
+      throw error;
+    }
+
     revalidatePath("/driver-dashboard");
   } catch (err) {
     console.error("Status update failed", err);

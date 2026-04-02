@@ -1,9 +1,8 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { RowDataPacket } from "mysql2";
 
 export async function loginDriver(formData: FormData) {
   const email = formData.get("email") as string;
@@ -14,25 +13,26 @@ export async function loginDriver(formData: FormData) {
   }
 
   try {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT driver_id, name, password FROM drivers WHERE email = ?",
-      [email]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { data: driver, error } = await supabase
+      .from("drivers")
+      .select("driver_id, name, password")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (rows.length >= 1) {
-      const driver = rows[0];
-      if (driver.password === password) {
-        const session = await getSession();
-        session.driverId = driver.driver_id;
-        session.userName = driver.name;
-        session.role = "driver";
-        await session.save();
-      } else {
-        throw new Error("Incorrect password."); 
-      }
-    } else {
-      throw new Error("No account found with that email.");
+    if (error) {
+      throw error;
     }
+
+    if (!driver || driver.password !== password) {
+      throw new Error("Invalid credentials.");
+    }
+
+    const session = await getSession();
+    session.driverId = driver.driver_id;
+    session.userName = driver.name;
+    session.role = "driver";
+    await session.save();
   } catch (error) {
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;

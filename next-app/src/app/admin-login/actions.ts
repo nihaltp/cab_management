@@ -1,9 +1,8 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { RowDataPacket } from "mysql2";
 
 export async function loginAdmin(formData: FormData) {
   const username = formData.get("username") as string;
@@ -14,25 +13,26 @@ export async function loginAdmin(formData: FormData) {
   }
 
   try {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT admin_id, username, password FROM admin WHERE username = ?",
-      [username]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { data: admin, error } = await supabase
+      .from("admin")
+      .select("admin_id, username, password")
+      .eq("username", username)
+      .maybeSingle();
 
-    if (rows.length >= 1) {
-      const admin = rows[0];
-      if (admin.password === password) {
-        const session = await getSession();
-        session.adminId = admin.admin_id;
-        session.userName = admin.username;
-        session.role = "admin";
-        await session.save();
-      } else {
-        throw new Error("Incorrect password."); 
-      }
-    } else {
-      throw new Error("No account found with that username.");
+    if (error) {
+      throw error;
     }
+
+    if (!admin || admin.password !== password) {
+      throw new Error("Invalid credentials.");
+    }
+
+    const session = await getSession();
+    session.adminId = admin.admin_id;
+    session.userName = admin.username;
+    session.role = "admin";
+    await session.save();
   } catch (error) {
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;

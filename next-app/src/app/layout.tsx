@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,15 +27,17 @@ export default async function RootLayout({
 }>) {
   let dbError: string | null = null;
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const { error } = await supabase.rpc('health_check');
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase
+      .from("users")
+      .select("user_id", { count: "exact", head: true })
+      .limit(1);
 
-    if (error && error.code !== 'PGRST202') {
+    if (error) {
       dbError = error.message;
     }
-  } catch (error: any) {
-    dbError = error.message || "Unknown error";
+  } catch (error: unknown) {
+    dbError = error instanceof Error ? error.message : "Unknown error";
   }
 
   if (dbError) {

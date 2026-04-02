@@ -1,9 +1,8 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { RowDataPacket } from "mysql2";
 
 export async function loginUser(formData: FormData) {
   const email = formData.get("email") as string;
@@ -14,26 +13,26 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT user_id, name, password FROM users WHERE email = ?",
-      [email]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("user_id, name, password")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (rows.length >= 1) {
-      const user = rows[0];
-      if (user.password === password) {
-        // Success
-        const session = await getSession();
-        session.userId = user.user_id;
-        session.userName = user.name;
-        session.role = "user";
-        await session.save();
-      } else {
-        throw new Error("Incorrect password."); 
-      }
-    } else {
-      throw new Error("No account found with that email.");
+    if (error) {
+      throw error;
     }
+
+    if (!user || user.password !== password) {
+      throw new Error("Invalid credentials.");
+    }
+
+    const session = await getSession();
+    session.userId = user.user_id;
+    session.userName = user.name;
+    session.role = "user";
+    await session.save();
   } catch (error) {
     console.error("Login failed", error);
     // Ideally we'd return a state to useActionState, but for simplicity let's rely on standard throw for now, 

@@ -1,8 +1,7 @@
 "use server";
 
-import pool from "@/lib/db";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { redirect } from "next/navigation";
-import { RowDataPacket } from "mysql2";
 
 export async function registerUser(formData: FormData) {
   const name = formData.get("name") as string;
@@ -15,20 +14,31 @@ export async function registerUser(formData: FormData) {
   }
 
   try {
-    const [existing] = await pool.execute<RowDataPacket[]>(
-      "SELECT user_id FROM users WHERE email = ?",
-      [email]
-    );
+    const supabase = getSupabaseAdminClient();
+    const { data: existing, error: lookupError } = await supabase
+      .from("users")
+      .select("user_id")
+      .eq("email", email)
+      .maybeSingle();
 
-    if (existing.length > 0) {
+    if (lookupError) {
+      throw lookupError;
+    }
+
+    if (existing) {
       redirect("/register?error=EmailExists");
     }
 
-    await pool.execute(
-      "INSERT INTO users (name, phone, email, password) VALUES (?, ?, ?, ?)",
-      [name, phone, email, password]
-    );
-    
+    const { error: insertError } = await supabase.from("users").insert({
+      name,
+      phone,
+      email,
+      password,
+    });
+
+    if (insertError) {
+      throw insertError;
+    }
   } catch (error) {
     console.error("Registration failed", error);
     // Cannot redirect from inside catch if redirect itself throws, wait redirect essentially throws an error to abort
