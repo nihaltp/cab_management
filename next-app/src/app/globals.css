@@ -2,27 +2,37 @@
 
 @layer base {
   :root {
-    --background: #f8fafc; /* slate-50 */
-    --foreground: #0f172a; /* slate-900 */
+    --background: #f8fafc;
+      --background-soft: #f1f5f9;
+      --foreground: #0f172a;
+      --brand: #0f766e;
+      --brand-strong: #115e59;
+      --accent: #0369a1;
   }
 
   body {
     background-color: var(--background);
+    background-image:
+        radial-gradient(circle at 10% 10%, rgba(14, 116, 144, 0.12), transparent 28%),
+        radial-gradient(circle at 90% 0%, rgba(20, 184, 166, 0.12), transparent 24%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 55%, #f8fafc 100%);
     color: var(--foreground);
     font-family: var(--font-geist-sans), sans-serif;
+    min-height: 100vh;
   }
 }
 
 @layer utilities {
   .glass-panel {
-    background-color: #ffffff;
-    border-color: #e2e8f0;
-    @apply border shadow-md;
+    background-color: rgba(255, 255, 255, 0.82);
+      border-color: rgba(148, 163, 184, 0.3);
+      backdrop-filter: blur(10px);
+      @apply border shadow-sm;
   }
 
   .glass-card {
-    background-color: #ffffff;
-    border-color: #e2e8f0;
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+      border-color: rgba(148, 163, 184, 0.28);
     @apply rounded-2xl border shadow-sm transition-all duration-300;
   }
 
@@ -31,19 +41,39 @@
     @apply w-full px-4 py-3 border border-slate-200 text-slate-800 rounded-xl focus:ring-2 focus:border-blue-500 outline-none transition-all placeholder-slate-400 shadow-sm;
   }
 
-  /* Sleek solid buttons replacing neon */
   .neon-button {
-    @apply relative inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 shadow-sm active:scale-95;
+    @apply relative inline-flex items-center justify-center rounded-xl text-white font-semibold transition-all duration-300 shadow-sm active:scale-95;
+      background: linear-gradient(100deg, var(--brand), var(--accent));
   }
 
   .neon-button-green {
-    @apply relative inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-all duration-300 shadow-sm active:scale-95;
+    @apply relative inline-flex items-center justify-center rounded-xl text-white font-semibold transition-all duration-300 shadow-sm active:scale-95;
+      background: linear-gradient(100deg, #0ea5a4, #0f766e);
   }
 
   .neon-button-red {
     @apply relative inline-flex items-center justify-center rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold transition-all duration-300 shadow-sm active:scale-95;
   }
 
+    .neon-button:hover,
+    .neon-button-green:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px -12px rgba(15, 118, 110, 0.8);
+    }
+  
+    .hero-chip {
+      @apply inline-flex items-center rounded-full border px-4 py-1.5 text-sm font-medium;
+      background: rgba(236, 254, 255, 0.76);
+      border-color: rgba(34, 211, 238, 0.35);
+      color: #155e75;
+    }
+  
+    .feature-tile {
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+      border-color: rgba(148, 163, 184, 0.28);
+      @apply rounded-2xl border shadow-sm transition-all duration-300 p-8 text-left;
+      box-shadow: 0 10px 24px -22px rgba(2, 132, 199, 0.75);
+    }
   .neon-text {
     @apply text-blue-600 font-extrabold;
   }
@@ -55,4 +85,24 @@
   .admin-sidebar-item.active {
     @apply bg-blue-500 text-white shadow-md;
   }
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-enter {
+  animation: float-up 500ms ease-out both;
+}
+
+.hero-enter-delay {
+  animation: float-up 700ms ease-out both;
 }

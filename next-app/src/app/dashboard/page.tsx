@@ -97,16 +97,22 @@ export default async function DashboardPage() {
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Welcome Card */}
-        <div className="glass-card p-10 relative overflow-hidden group">
-          <div className="relative z-10">
-            <h1 className="text-3xl font-extrabold mb-2 text-slate-900 drop-shadow-sm">
+        <div className="glass-card p-8 sm:p-10 relative overflow-hidden group border-cyan-100">
+          <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-cyan-200/30 blur-3xl" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-extrabold mb-2 text-slate-900 drop-shadow-sm">
               Welcome, <span className="text-blue-600">{session.userName}</span>! 👋
-            </h1>
-            <p className="text-slate-600 text-sm max-w-xl leading-relaxed font-light">
-              Manage your rides, track your drivers, and book new cabs anytime and travel comfortably.
-            </p>
+              </h1>
+              <p className="text-slate-600 text-sm max-w-xl leading-relaxed">
+                Manage your rides, track your drivers, and book new cabs anytime.
+              </p>
+            </div>
+            <Link href="/booking" className="neon-button-green px-7 py-3 text-sm sm:text-base flex items-center justify-center gap-2 w-full md:w-auto">
+              <span className="text-lg leading-none">+</span>
+              <span>Book a Cab</span>
+            </Link>
           </div>
-
         </div>
 
         {/* Stats Row */}
@@ -125,10 +131,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <h3 className="text-xl font-bold text-slate-900">Your Bookings</h3>
-          <Link href="/booking" className="neon-button-green px-6 flex items-center gap-2">
-            <span>+</span> Book a Cab
+          <Link href="/booking" className="glass-panel px-4 py-2 rounded-xl text-sm font-semibold text-cyan-700 hover:text-cyan-900 transition-colors flex items-center gap-2">
+            <span>+</span>
+            <span>New Booking</span>
           </Link>
         </div>
 
@@ -204,7 +211,7 @@ export default async function DashboardPage() {
               <div className="text-6xl mb-6 opacity-40">📂</div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">No bookings yet</h3>
               <p className="text-slate-500 mb-8 max-w-sm mx-auto font-light">You haven&apos;t booked any cabs. Click the button below to start your first journey!</p>
-              <Link href="/booking" className="neon-button px-8 text-sm">
+                <Link href="/booking" className="neon-button-green px-8 py-3 text-sm">
                 Book a Cab Now
               </Link>
             </div>
