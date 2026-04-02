@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { getSession } from "@/lib/session";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
 export default async function Home() {
-  const session = await getSession();
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] bg-transparent overflow-hidden">
@@ -26,7 +29,7 @@ export default async function Home() {
             travel comfortably with our AC and Non-AC premium options.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6 w-full max-w-sm sm:max-w-none">
-            {!session.userId ? (
+            {!user ? (
               <>
                 <Link href="/register" className="neon-button px-8 text-base">
                   Get Started

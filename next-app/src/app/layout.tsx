@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import pool from "@/lib/db";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,10 +28,15 @@ export default async function RootLayout({
 }>) {
   let dbError: string | null = null;
   try {
-    const connection = await pool.getConnection();
-    connection.release();
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const { error } = await supabase.rpc('health_check');
+
+    if (error && error.code !== 'PGRST202') {
+      dbError = error.message;
+    }
   } catch (error: any) {
-    dbError = error.code || error.message || "Unknown error";
+    dbError = error.message || "Unknown error";
   }
 
   if (dbError) {
