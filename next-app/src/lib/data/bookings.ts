@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from "../supabase-admin";
+import { clientPromise } from "../mongodb";
 
 export async function createBooking(
   userId: number,
@@ -50,19 +51,16 @@ export async function cancelBooking(bookingId: number, userId: number) {
 }
 
 export async function getBookingsByUserId(userId: number) {
-  const supabase = getSupabaseAdminClient();
-  const { data: bookingRows, error } = await supabase
-    .from("booking")
-    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, cab_id")
-    .eq("user_id", userId)
-    .order("booking_date", { ascending: false })
-    .order("booking_time", { ascending: false });
+  const client = await clientPromise;
+  const db = client.db();
 
-  if (error) {
-    throw error;
-  }
+  const bookingDocs = await db
+    .collection("bookings")
+    .find({ userId })
+    .sort({ createdAt: -1 })
+    .toArray();
 
-  return bookingRows || [];
+  return bookingDocs;
 }
 
 export async function getAllBookings() {
