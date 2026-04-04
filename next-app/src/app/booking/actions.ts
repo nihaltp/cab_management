@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createBooking } from "@/lib/data/bookings";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -22,20 +22,7 @@ export async function bookCab(formData: FormData) {
   const time = now.toTimeString().split(" ")[0];
 
   try {
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase.from("booking").insert({
-      user_id: session.userId,
-      cab_id: Number(cabId),
-      pickup_location: pickup,
-      drop_location: drop,
-      booking_date: date,
-      booking_time: time,
-      status: "Confirmed",
-    });
-
-    if (error) {
-      throw error;
-    }
+    await createBooking(session.userId, Number(cabId), pickup, drop, date, time);
   } catch (err) {
     console.error("Booking error", err);
     redirect("/booking?error=1");

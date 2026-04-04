@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getCabs } from "@/lib/data/cabs";
+import { getDriversBasicInfo } from "@/lib/data/drivers";
 import { bookCab } from "./actions";
 
 type CabRow = {
@@ -28,26 +29,7 @@ export default async function BookingPage({
   const error = typeof resolvedParams?.error === "string" ? "Booking failed. Please try again." : null;
   const success = typeof resolvedParams?.success === "string" ? "Cab booked successfully!" : null;
 
-  const supabase = getSupabaseAdminClient();
-  let cabsQuery = supabase
-    .from("cabs")
-    .select("cab_id, cab_number, cab_type, ac_type, driver_id");
-
-  if (acFilter !== "All") {
-    cabsQuery = cabsQuery.eq("ac_type", acFilter);
-  }
-
-  if (typeFilter !== "All") {
-    cabsQuery = cabsQuery.eq("cab_type", typeFilter);
-  }
-
-  const { data: cabRows, error: cabError } = await cabsQuery
-    .order("cab_type", { ascending: true })
-    .order("ac_type", { ascending: true });
-
-  if (cabError) {
-    throw cabError;
-  }
+  const cabRows = await getCabs(acFilter, typeFilter);
 
   const driverIds = [...new Set((cabRows ?? [])
     .map((cab) => cab.driver_id)
@@ -55,14 +37,7 @@ export default async function BookingPage({
 
   const driverMap = new Map<number, { name: string | null; phone: string | null }>();
   if (driverIds.length > 0) {
-    const { data: drivers, error: driverError } = await supabase
-      .from("drivers")
-      .select("driver_id, name, phone")
-      .in("driver_id", driverIds);
-
-    if (driverError) {
-      throw driverError;
-    }
+    const drivers = await getDriversBasicInfo(driverIds);
 
     for (const driver of drivers ?? []) {
       driverMap.set(driver.driver_id, { name: driver.name, phone: driver.phone });

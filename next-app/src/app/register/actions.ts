@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getUserByEmail, createUser } from "@/lib/data/users";
 import { redirect } from "next/navigation";
 import { loginUser } from "../login/actions";
 
@@ -15,32 +15,14 @@ export async function registerUser(formData: FormData) {
   }
 
   try {
-    const supabase = getSupabaseAdminClient();
-    const { data: existing, error: lookupError } = await supabase
-      .from("users")
-      .select("user_id")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (lookupError) {
-      throw lookupError;
-    }
+    const existing = await getUserByEmail(email);
 
     if (existing) {
       console.log("Email already exists, trying to log in instead");
       return await loginUser(formData);
     }
 
-    const { error: insertError } = await supabase.from("users").insert({
-      name,
-      phone,
-      email,
-      password,
-    });
-
-    if (insertError) {
-      throw insertError;
-    }
+    await createUser(name, phone, email, password);
   } catch (error) {
     console.error("Registration failed", error);
     // Cannot redirect from inside catch if redirect itself throws, wait redirect essentially throws an error to abort

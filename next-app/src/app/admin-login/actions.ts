@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getAdminByUsername } from "@/lib/data/admins";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -13,16 +13,7 @@ export async function loginAdmin(formData: FormData) {
   }
 
   try {
-    const supabase = getSupabaseAdminClient();
-    const { data: admin, error } = await supabase
-      .from("admin")
-      .select("admin_id, username, password")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
+    const admin = await getAdminByUsername(username);
 
     if (!admin || admin.password !== password) {
       throw new Error("Invalid credentials.");

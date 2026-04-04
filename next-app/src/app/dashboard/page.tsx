@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getBookingsByUserId } from "@/lib/data/bookings";
+import { getCabsByIds } from "@/lib/data/cabs";
+import { getDriversBasicInfo } from "@/lib/data/drivers";
 import { cancelBooking } from "./actions";
 
 type DashboardBookingRow = {
@@ -22,17 +24,7 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session.userId) redirect("/login");
 
-  const supabase = getSupabaseAdminClient();
-  const { data: bookingRows, error: bookingError } = await supabase
-    .from("booking")
-    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, cab_id")
-    .eq("user_id", session.userId)
-    .order("booking_date", { ascending: false })
-    .order("booking_time", { ascending: false });
-
-  if (bookingError) {
-    throw bookingError;
-  }
+  const bookingRows = await getBookingsByUserId(session.userId);
 
   const cabIds = [...new Set((bookingRows ?? [])
     .map((booking) => booking.cab_id)
@@ -42,14 +34,7 @@ export default async function DashboardPage() {
   const driverMap = new Map<number, { name: string | null; phone: string | null }>();
 
   if (cabIds.length > 0) {
-    const { data: cabRows, error: cabError } = await supabase
-      .from("cabs")
-      .select("cab_id, cab_number, cab_type, driver_id")
-      .in("cab_id", cabIds);
-
-    if (cabError) {
-      throw cabError;
-    }
+    const cabRows = await getCabsByIds(cabIds);
 
     for (const cab of cabRows ?? []) {
       cabMap.set(cab.cab_id, {
@@ -64,14 +49,7 @@ export default async function DashboardPage() {
       .filter((driverId): driverId is number => typeof driverId === "number"))];
 
     if (driverIds.length > 0) {
-      const { data: drivers, error: driverError } = await supabase
-        .from("drivers")
-        .select("driver_id, name, phone")
-        .in("driver_id", driverIds);
-
-      if (driverError) {
-        throw driverError;
-      }
+      const drivers = await getDriversBasicInfo(driverIds);
 
       for (const driver of drivers ?? []) {
         driverMap.set(driver.driver_id, { name: driver.name, phone: driver.phone });

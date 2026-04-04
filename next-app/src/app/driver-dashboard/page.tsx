@@ -1,6 +1,8 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getCabsByDriver } from "@/lib/data/cabs";
+import { getBookingsByDriver } from "@/lib/data/bookings";
+import { getUsersByIds } from "@/lib/data/users";
 import { updateTripStatus } from "./actions";
 
 type DriverBookingRow = {
@@ -22,16 +24,7 @@ export default async function DriverDashboardPage() {
   const session = await getSession();
   if (!session.driverId) redirect("/driver-login");
 
-  const supabase = getSupabaseAdminClient();
-
-  const { data: cabRows, error: cabError } = await supabase
-    .from("cabs")
-    .select("cab_id, cab_number, cab_type, ac_type")
-    .eq("driver_id", session.driverId);
-
-  if (cabError) {
-    throw cabError;
-  }
+  const cabRows = await getCabsByDriver(session.driverId);
 
   const cabMap = new Map<number, { cab_number: string | null; cab_type: string | null; ac_type: string | null }>();
   for (const cab of cabRows ?? []) {
@@ -44,32 +37,7 @@ export default async function DriverDashboardPage() {
 
   const cabIds = [...cabMap.keys()];
 
-  const bookingRows = [] as Array<{
-    booking_id: number;
-    booking_date: string;
-    booking_time: string | null;
-    pickup_location: string | null;
-    drop_location: string | null;
-    status: string | null;
-    user_id: number | null;
-    cab_id: number | null;
-  }>;
-
-  if (cabIds.length > 0) {
-    const { data: rows, error: bookingError } = await supabase
-      .from("booking")
-      .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id, cab_id")
-      .in("cab_id", cabIds)
-      .neq("status", "Cancelled")
-      .order("booking_date", { ascending: false })
-      .order("booking_time", { ascending: false });
-
-    if (bookingError) {
-      throw bookingError;
-    }
-
-    bookingRows.push(...(rows ?? []));
-  }
+  const bookingRows = await getBookingsByDriver(cabIds);
 
   const userIds = [...new Set((bookingRows ?? [])
     .map((booking) => booking.user_id)
@@ -77,14 +45,7 @@ export default async function DriverDashboardPage() {
 
   const userMap = new Map<number, { name: string | null; phone: string | null }>();
   if (userIds.length > 0) {
-    const { data: users, error: usersError } = await supabase
-      .from("users")
-      .select("user_id, name, phone")
-      .in("user_id", userIds);
-
-    if (usersError) {
-      throw usersError;
-    }
+    const users = await getUsersByIds(userIds);
 
     for (const user of users ?? []) {
       userMap.set(user.user_id, { name: user.name, phone: user.phone });

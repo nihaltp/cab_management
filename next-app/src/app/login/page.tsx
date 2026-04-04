@@ -45,7 +45,7 @@ export default async function LoginPage({
           </div>
           <button 
             type="submit" 
-            className="w-full neon-button mt-4"
+            className="w-full neon-button mt-4 h-14 text-lg font-bold"
           >
             <span className="group-hover:tracking-wide transition-all">Login</span>
           </button>

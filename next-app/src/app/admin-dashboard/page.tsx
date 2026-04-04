@@ -1,6 +1,9 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getAllBookings, getBookingCount } from "@/lib/data/bookings";
+import { getUserCount, getUsersByIds } from "@/lib/data/users";
+import { getCabsByIds, getCabCount } from "@/lib/data/cabs";
+import { getDriversByIds, getDriverCount } from "@/lib/data/drivers";
 import { updateAdminTripStatus } from "./actions";
 
 type AdminBookingRow = {
@@ -24,29 +27,14 @@ export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session.adminId) redirect("/admin-login");
 
-  const supabase = getSupabaseAdminClient();
-
-  const [{ count: userCount, error: userCountError }, { count: bookingCount, error: bookingCountError }, { count: cabCount, error: cabCountError }, { count: driverCount, error: driverCountError }] = await Promise.all([
-    supabase.from("users").select("*", { count: "exact", head: true }),
-    supabase.from("booking").select("*", { count: "exact", head: true }),
-    supabase.from("cabs").select("*", { count: "exact", head: true }),
-    supabase.from("drivers").select("*", { count: "exact", head: true }),
+  const [userCount, bookingCount, cabCount, driverCount] = await Promise.all([
+    getUserCount(),
+    getBookingCount(),
+    getCabCount(),
+    getDriverCount(),
   ]);
 
-  const countErrors = [userCountError, bookingCountError, cabCountError, driverCountError].filter(Boolean);
-  if (countErrors.length > 0) {
-    throw countErrors[0];
-  }
-
-  const { data: bookingRows, error: bookingRowsError } = await supabase
-    .from("booking")
-    .select("booking_id, booking_date, booking_time, pickup_location, drop_location, status, user_id, cab_id")
-    .order("booking_date", { ascending: false })
-    .order("booking_time", { ascending: false });
-
-  if (bookingRowsError) {
-    throw bookingRowsError;
-  }
+  const bookingRows = await getAllBookings();
 
   const userIds = [...new Set((bookingRows ?? [])
     .map((booking) => booking.user_id)
@@ -60,14 +48,7 @@ export default async function AdminDashboardPage() {
   const driverMap = new Map<number, { name: string | null; phone: string | null; license_no: string | null }>();
 
   if (userIds.length > 0) {
-    const { data: users, error: usersError } = await supabase
-      .from("users")
-      .select("user_id, name, phone, email")
-      .in("user_id", userIds);
-
-    if (usersError) {
-      throw usersError;
-    }
+    const users = await getUsersByIds(userIds);
 
     for (const user of users ?? []) {
       userMap.set(user.user_id, { name: user.name, phone: user.phone, email: user.email });
@@ -75,14 +56,7 @@ export default async function AdminDashboardPage() {
   }
 
   if (cabIds.length > 0) {
-    const { data: cabs, error: cabsError } = await supabase
-      .from("cabs")
-      .select("cab_id, cab_number, cab_type, driver_id")
-      .in("cab_id", cabIds);
-
-    if (cabsError) {
-      throw cabsError;
-    }
+    const cabs = await getCabsByIds(cabIds);
 
     for (const cab of cabs ?? []) {
       cabMap.set(cab.cab_id, { cab_number: cab.cab_number, cab_type: cab.cab_type, driver_id: cab.driver_id });
@@ -93,14 +67,7 @@ export default async function AdminDashboardPage() {
       .filter((driverId): driverId is number => typeof driverId === "number"))];
 
     if (driverIds.length > 0) {
-      const { data: drivers, error: driversError } = await supabase
-        .from("drivers")
-        .select("driver_id, name, phone, license_no")
-        .in("driver_id", driverIds);
-
-      if (driversError) {
-        throw driversError;
-      }
+      const drivers = await getDriversByIds(driverIds);
 
       for (const driver of drivers ?? []) {
         driverMap.set(driver.driver_id, {

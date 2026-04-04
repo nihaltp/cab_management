@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getDriverByEmail } from "@/lib/data/drivers";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -13,16 +13,7 @@ export async function loginDriver(formData: FormData) {
   }
 
   try {
-    const supabase = getSupabaseAdminClient();
-    const { data: driver, error } = await supabase
-      .from("drivers")
-      .select("driver_id, name, password")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
+    const driver = await getDriverByEmail(email);
 
     if (!driver || driver.password !== password) {
       throw new Error("Invalid credentials.");

@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getUserByEmail } from "@/lib/data/users";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -13,16 +13,7 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
-    const supabase = getSupabaseAdminClient();
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("user_id, name, password")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
+    const user = await getUserByEmail(email);
 
     if (!user || user.password !== password) {
       throw new Error("Invalid credentials.");

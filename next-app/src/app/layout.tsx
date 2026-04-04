@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { checkDatabaseConnection } from "@/lib/data/users";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,11 +27,7 @@ export default async function RootLayout({
 }>) {
   let dbError: string | null = null;
   try {
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase
-      .from("users")
-      .select("user_id", { count: "exact", head: true })
-      .limit(1);
+    const error = await checkDatabaseConnection();
 
     if (error) {
       dbError = error.message;
