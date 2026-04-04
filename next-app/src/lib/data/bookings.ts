@@ -60,7 +60,21 @@ export async function getBookingsByUserId(userId: number) {
     .sort({ createdAt: -1 })
     .toArray();
 
-  return bookingDocs;
+  return bookingDocs.map((booking) => ({
+    booking_id: String(booking._id),
+    booking_date: typeof booking.booking_date === "string" ? booking.booking_date : "",
+    booking_time: typeof booking.booking_time === "string" ? booking.booking_time : null,
+    pickup_location:
+      typeof booking.pickup_location === "string" ? booking.pickup_location : null,
+    drop_location:
+      typeof booking.drop_location === "string" ? booking.drop_location : null,
+    status: typeof booking.status === "string" ? booking.status : null,
+    cab_id: typeof booking.cabId === "number"
+      ? booking.cabId
+      : typeof booking.cab_id === "number"
+        ? booking.cab_id
+        : null,
+  }));
 }
 
 export async function getAllBookings() {

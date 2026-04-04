@@ -7,7 +7,7 @@ import { getDriversBasicInfo } from "@/lib/data/drivers";
 import { cancelBooking } from "./actions";
 
 type DashboardBookingRow = {
-  booking_id: number;
+  booking_id: string;
   booking_date: string;
   booking_time: string | null;
   pickup_location: string | null;
