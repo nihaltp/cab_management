@@ -2,10 +2,7 @@ INSERT INTO users VALUES
 (1,'Rahul','9876543210','rahul@gmail.com','1234'),
 (2,'Anu','9876543211','anu@gmail.com','1234'),
 (3,'Arjun','9876543212','arjun@gmail.com','1234'),
-(4,'Jareena','9567694356','jareenabanu58@gmail.com','Jareena@2004'),
-(5,'Jareena','9567694356','jareenabanu58@gmail.com','Jareena@2004'),
-(6,'Jareena','9567694356','jareenabanu58@gmail.com','12345'),
-(7,'Jareena','9567694356','jareenabanu58@gmail.com','123456');
+(4,'Jareena','9567694356','jareenabanu58@gmail.com','Jareena@2004');
 
 INSERT INTO drivers VALUES
 (1,'Ramesh','9876541111','LIC123','ramesh@gmail.com','ramesh123'),
