@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ScrollHeader } from "@/components/ScrollHeader";
 import { checkDatabaseConnection } from "@/lib/data/users";
 import "./globals.css";
 
@@ -81,7 +82,9 @@ export default async function RootLayout({
         className="min-h-screen flex flex-col text-slate-800 bg-slate-50"
         suppressHydrationWarning={true}
       >
-        <Navbar />
+        <ScrollHeader>
+          <Navbar />
+        </ScrollHeader>
         <main className="flex-1 drop-shadow-sm relative z-10">
           {children}
         </main>
