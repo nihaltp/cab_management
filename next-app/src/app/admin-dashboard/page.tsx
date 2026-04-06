@@ -1,7 +1,9 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { getAllBookings, getBookingCount } from "@/lib/data/bookings";
-import { getUserCount, getUserRegistrationLogs, getUsersByIds } from "@/lib/data/users";
+import { getBookingCount } from "@/lib/data/bookings";
+import { getAllBookings } from "@/lib/data/detailed_bookings";
+import { getUserCount, getUsersByIds } from "@/lib/data/users";
+import { getUserRegistrationLogs } from "@/lib/data/user_registration_logs";
 import { getCabsByIds, getCabCount } from "@/lib/data/cabs";
 import { getDriversByIds, getDriverCount } from "@/lib/data/drivers";
 import { updateAdminTripStatus } from "./actions";
