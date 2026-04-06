@@ -44,8 +44,8 @@ export default async function Home() {
     <div className="min-h-[calc(100vh-80px)] overflow-hidden pb-16">
       <section className="px-6 pt-14 pb-12 lg:px-8">
         <div className="mx-auto max-w-6xl glass-card p-8 sm:p-12 md:p-14 rounded-3xl border border-cyan-100/70 relative overflow-hidden">
-          <div className="absolute -top-24 -right-12 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="absolute -bottom-20 -left-8 h-52 w-52 rounded-full bg-sky-400/20 blur-3xl" />
+          <div className="absolute -top-24 -right-12 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl pointer-events-none z-0" />
+          <div className="absolute -bottom-20 -left-8 h-52 w-52 rounded-full bg-sky-400/20 blur-3xl pointer-events-none z-0" />
 
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10 items-center">
             <div className="text-center lg:text-left">

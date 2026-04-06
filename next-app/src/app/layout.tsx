@@ -49,7 +49,8 @@ export default async function RootLayout({
       >
         <body
           className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800 p-4"
-          suppressHydrationWarning={true}>
+          suppressHydrationWarning={true}
+        >
           <div className="bg-white p-10 rounded-2xl shadow-sm border border-red-200 max-w-xl w-full text-center">
             <h1 className="text-3xl font-bold mb-4 text-red-600">Database Connection Error</h1>
             <p className="mb-6 text-slate-600">The application could not connect to the database. The system returned the following error code:</p>
@@ -78,7 +79,8 @@ export default async function RootLayout({
     >
       <body
         className="min-h-screen flex flex-col text-slate-800 bg-slate-50"
-        suppressHydrationWarning={true}>
+        suppressHydrationWarning={true}
+      >
         <Navbar />
         <main className="flex-1 drop-shadow-sm relative z-10">
           {children}

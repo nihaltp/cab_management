@@ -76,7 +76,7 @@ export default async function DashboardPage() {
         
         {/* Welcome Card */}
         <div className="glass-card p-8 sm:p-10 relative overflow-hidden group border-cyan-100">
-          <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-cyan-200/30 blur-3xl" />
+          <div className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-cyan-200/30 blur-3xl pointer-events-none z-0" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
               <h1 className="text-3xl font-extrabold mb-2 text-slate-900 drop-shadow-sm">
