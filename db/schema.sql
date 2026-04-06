@@ -55,3 +55,27 @@ CREATE TABLE booking (
   CONSTRAINT booking_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id),
   CONSTRAINT booking_ibfk_2 FOREIGN KEY (cab_id) REFERENCES cabs (cab_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP VIEW IF EXISTS detailed_bookings;
+CREATE VIEW detailed_bookings AS
+SELECT
+  b.booking_id,
+  b.user_id,
+  b.cab_id,
+  b.pickup_location,
+  b.drop_location,
+  b.booking_date,
+  b.booking_time,
+  b.status,
+  u.name AS user_name,
+  u.phone AS user_phone,
+  u.email,
+  c.cab_number,
+  c.cab_type,
+  d.name AS driver_name,
+  d.phone AS driver_phone,
+  d.license_no
+FROM booking AS b
+LEFT JOIN users AS u ON u.user_id = b.user_id
+LEFT JOIN cabs AS c ON c.cab_id = b.cab_id
+LEFT JOIN drivers AS d ON d.driver_id = c.driver_id;
