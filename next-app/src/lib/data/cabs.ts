@@ -39,6 +39,57 @@ export async function getCabsByDriver(driverId: number) {
   return cabRows || [];
 }
 
+export async function getCabByNumber(cabNumber: string) {
+  const supabase = getSupabaseAdminClient();
+  const { data: cab, error } = await supabase
+    .from("cabs")
+    .select("cab_id")
+    .eq("cab_number", cabNumber)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return cab;
+}
+
+export async function createCabForDriver(
+  cabNumber: string,
+  cabType: string,
+  acType: string,
+  driverId: number,
+) {
+  const supabase = getSupabaseAdminClient();
+  const { error } = await supabase.from("cabs").insert({
+    cab_number: cabNumber,
+    cab_type: cabType,
+    ac_type: acType,
+    driver_id: driverId,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteCabByIdAndDriver(cabId: number, driverId: number) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("cabs")
+    .delete()
+    .eq("cab_id", cabId)
+    .eq("driver_id", driverId)
+    .select("cab_id")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getCabsByIds(cabIds: number[]) {
   const supabase = getSupabaseAdminClient();
   const { data: cabs, error } = await supabase

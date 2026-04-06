@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCabsByDriver } from "@/lib/data/cabs";
 import { getBookingsByDriver } from "@/lib/data/bookings";
 import { getUsersByIds } from "@/lib/data/users";
-import { updateTripStatus } from "./actions";
+import { addDriverCab, deleteDriverCab, updateTripStatus } from "./actions";
 
 type DriverBookingRow = {
   booking_id: number;
@@ -20,9 +20,38 @@ type DriverBookingRow = {
   ac_type: string | null;
 };
 
-export default async function DriverDashboardPage() {
+export default async function DriverDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const session = await getSession();
   if (!session.driverId) redirect("/driver-login");
+
+  const resolvedParams = await searchParams;
+  const cabStatusParam = typeof resolvedParams?.cab === "string" ? resolvedParams.cab : null;
+
+  const cabStatusMessage = cabStatusParam === "added"
+    ? { text: "Cab added successfully.", tone: "success" as const }
+    : cabStatusParam === "deleted"
+      ? { text: "Cab deleted successfully.", tone: "success" as const }
+    : cabStatusParam === "exists"
+      ? { text: "Cab number already exists.", tone: "error" as const }
+      : cabStatusParam === "missing"
+        ? { text: "Please fill all cab fields.", tone: "error" as const }
+        : cabStatusParam === "invalid"
+          ? { text: "Please choose a valid AC type.", tone: "error" as const }
+          : cabStatusParam === "inUse"
+            ? { text: "This cab cannot be deleted because bookings exist for it.", tone: "error" as const }
+            : cabStatusParam === "notFound"
+              ? { text: "Cab not found or you are not allowed to delete it.", tone: "error" as const }
+              : cabStatusParam === "invalidDelete"
+                ? { text: "Invalid cab selection for deletion.", tone: "error" as const }
+                : cabStatusParam === "deleteError"
+                  ? { text: "Unable to delete cab right now.", tone: "error" as const }
+          : cabStatusParam === "error"
+            ? { text: "Unable to add cab right now.", tone: "error" as const }
+            : null;
 
   const cabRows = await getCabsByDriver(session.driverId);
 
@@ -87,6 +116,92 @@ export default async function DriverDashboardPage() {
             </p>
           </div>
 
+        </div>
+
+        <div className="glass-card p-6 md:p-8 border-emerald-100">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Add Your Cab</h2>
+              <p className="text-sm text-slate-600 mt-1">Create a cab and link it directly to your driver account.</p>
+            </div>
+
+            <div className="text-sm text-slate-600 md:text-right">
+              <div className="font-semibold text-slate-800">Your Cabs: {cabRows.length}</div>
+              <div className="text-xs mt-1">
+                {cabRows.length > 0
+                  ? cabRows.map((cab) => cab.cab_number).filter(Boolean).join(", ")
+                  : "No cabs added yet"}
+              </div>
+            </div>
+          </div>
+
+          {cabStatusMessage && (
+            <div className={`mt-5 text-sm py-3 px-4 rounded-xl border flex items-center gap-2 shadow-sm ${cabStatusMessage.tone === "success"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-rose-50 text-rose-700 border-rose-200"
+              }`}>
+              <span>{cabStatusMessage.tone === "success" ? "✅" : "⚠️"}</span>
+              {cabStatusMessage.text}
+            </div>
+          )}
+
+          <form action={addDriverCab} className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input
+              type="text"
+              name="cab_number"
+              placeholder="Cab Number (e.g. KL11AB1234)"
+              required
+              className="glass-input md:col-span-2"
+            />
+
+            <select name="cab_type" required className="glass-input">
+              <option value="">Select Cab Type</option>
+              <option value="Mini">Mini</option>
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Premium">Premium</option>
+            </select>
+
+            <select name="ac_type" required className="glass-input">
+              <option value="">AC Type</option>
+              <option value="AC">AC</option>
+              <option value="Non-AC">Non-AC</option>
+            </select>
+
+            <div className="md:col-span-4 flex justify-end">
+              <button type="submit" className="neon-button-green px-6 py-2.5 text-sm whitespace-nowrap">
+                Add Cab
+              </button>
+            </div>
+          </form>
+
+          {cabRows.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <h3 className="text-sm font-bold text-slate-800 mb-3">Manage Your Cabs</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {cabRows.map((cab) => (
+                  <div key={cab.cab_id} className="glass-panel rounded-xl p-4 border border-slate-200 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="font-semibold text-slate-900">{cab.cab_number}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {cab.cab_type} | {cab.ac_type}
+                      </div>
+                    </div>
+
+                    <form action={deleteDriverCab}>
+                      <input type="hidden" name="cab_id" value={cab.cab_id} />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 transition"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Row */}

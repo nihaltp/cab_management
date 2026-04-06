@@ -108,3 +108,19 @@ export async function getBookingCount() {
 
   return count;
 }
+
+export async function cabHasBookings(cabId: number) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("booking")
+    .select("booking_id")
+    .eq("cab_id", cabId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return !!data;
+}
