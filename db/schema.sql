@@ -8,6 +8,18 @@ CREATE TABLE users (
   PRIMARY KEY (user_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS user_registration_logs;
+CREATE TABLE user_registration_logs (
+  log_id int NOT NULL AUTO_INCREMENT,
+  user_id int NOT NULL,
+  registered_name varchar(50) DEFAULT NULL,
+  registered_email varchar(50) DEFAULT NULL,
+  registration_timestamp datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (log_id),
+  KEY user_registration_logs_user_id_idx (user_id),
+  CONSTRAINT user_registration_logs_user_fk FOREIGN KEY (user_id) REFERENCES users (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 DROP TABLE IF EXISTS drivers;
 CREATE TABLE drivers (
   driver_id int NOT NULL,
@@ -78,6 +90,27 @@ BEGIN
     INSERT INTO booking_logs (booking_id, old_status, new_status, changed_at)
     VALUES (NEW.booking_id, OLD.status, NEW.status, NOW());
   END IF;
+END$$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS users_registration_audit_trigger;
+DELIMITER $$
+CREATE TRIGGER users_registration_audit_trigger
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+  INSERT INTO user_registration_logs (
+    user_id,
+    registered_name,
+    registered_email,
+    registration_timestamp
+  )
+  VALUES (
+    NEW.user_id,
+    NEW.name,
+    NEW.email,
+    NOW()
+  );
 END$$
 DELIMITER ;
 

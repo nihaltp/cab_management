@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { getAllBookings, getBookingCount } from "@/lib/data/bookings";
-import { getUserCount, getUsersByIds } from "@/lib/data/users";
+import { getUserCount, getUserRegistrationLogs, getUsersByIds } from "@/lib/data/users";
 import { getCabsByIds, getCabCount } from "@/lib/data/cabs";
 import { getDriversByIds, getDriverCount } from "@/lib/data/drivers";
 import { updateAdminTripStatus } from "./actions";
@@ -23,15 +23,24 @@ type AdminBookingRow = {
   license_no: string | null;
 };
 
+type UserRegistrationLog = {
+  log_id: number;
+  user_id: number;
+  registered_name: string | null;
+  registered_email: string | null;
+  registration_timestamp: string;
+};
+
 export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session.adminId) redirect("/admin-login");
 
-  const [userCount, bookingCount, cabCount, driverCount] = await Promise.all([
+  const [userCount, bookingCount, cabCount, driverCount, registrationLogs] = await Promise.all([
     getUserCount(),
     getBookingCount(),
     getCabCount(),
     getDriverCount(),
+    getUserRegistrationLogs(25),
   ]);
 
   const bookingRows = await getAllBookings();
@@ -102,6 +111,8 @@ export default async function AdminDashboardPage() {
     };
   });
 
+  const userRegistrationLogs: UserRegistrationLog[] = registrationLogs;
+
   return (
     <div className="flex-1 bg-transparent py-8 px-4 sm:px-6 lg:px-8 relative z-10">
       <div className="max-w-[1400px] mx-auto space-y-8">
@@ -141,6 +152,43 @@ export default async function AdminDashboardPage() {
 
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold text-slate-900">System Bookings Record</h3>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-slate-900">Recent User Registrations</h3>
+        </div>
+
+        <div className="glass-card overflow-hidden">
+          {userRegistrationLogs.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-700 text-xs uppercase tracking-wider border-b border-slate-200">
+                    <th className="py-4 px-4 font-semibold">Log ID</th>
+                    <th className="py-4 px-4 font-semibold">User ID</th>
+                    <th className="py-4 px-4 font-semibold">Name</th>
+                    <th className="py-4 px-4 font-semibold">Email</th>
+                    <th className="py-4 px-4 font-semibold">Registered At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-sm">
+                  {userRegistrationLogs.map((row) => (
+                    <tr key={row.log_id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4 text-slate-600 font-medium">{row.log_id}</td>
+                      <td className="py-4 px-4 text-slate-700">{row.user_id}</td>
+                      <td className="py-4 px-4 text-slate-900 font-medium">{row.registered_name || "-"}</td>
+                      <td className="py-4 px-4 text-slate-700">{row.registered_email || "-"}</td>
+                      <td className="py-4 px-4 text-slate-600">{new Date(row.registration_timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-10 px-6">
+              <p className="text-slate-500 text-sm">No user registrations logged yet.</p>
+            </div>
+          )}
         </div>
 
         {/* Table */}
