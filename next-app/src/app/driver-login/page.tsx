@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { loginDriver } from "./actions";
 
 export default async function DriverLoginPage({
@@ -22,7 +23,7 @@ export default async function DriverLoginPage({
             <span>⚠️</span> Invalid email or password.
           </div>
         )}
-        
+
         <form action={loginDriver} className="space-y-5">
           <div>
             <input 
@@ -49,6 +50,13 @@ export default async function DriverLoginPage({
             <span className="group-hover:tracking-wide transition-all">Login as Driver</span>
           </button>
         </form>
+
+        <div className="text-center mt-6 text-sm text-slate-600">
+          New driver?{" "}
+          <Link href="/driver-register" className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors">
+            Register here
+          </Link>
+        </div>
       </div>
     </div>
   );

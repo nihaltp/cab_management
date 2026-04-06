@@ -30,6 +30,7 @@ export default async function Navbar() {
             <Link href="/register" className="hidden md:inline-flex hover:bg-black/5 px-3 py-2 rounded-lg font-medium transition-colors">Register</Link>
             <div className="hidden md:block h-6 w-px bg-slate-300 mx-1"></div>
             <Link href="/driver-login" className="hidden sm:inline-flex hover:text-amber-600 px-3 py-2 rounded-lg font-medium transition-colors text-sm">Driver</Link>
+            <Link href="/driver-register" className="hidden sm:inline-flex hover:text-emerald-600 px-3 py-2 rounded-lg font-medium transition-colors text-sm">Driver Register</Link>
             <Link href="/admin-login" className="hidden sm:inline-flex hover:text-rose-600 px-3 py-2 rounded-lg font-medium transition-colors text-sm">Admin</Link>
             <Link href="/login" className="neon-button px-4 sm:px-6 py-2.5 ml-1 sm:ml-2 text-xs sm:text-sm whitespace-nowrap">
               Book Now

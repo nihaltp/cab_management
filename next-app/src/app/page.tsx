@@ -166,6 +166,12 @@ export default async function Home() {
                 <span>Enter Portal</span>
                 <span aria-hidden="true">&rarr;</span>
               </Link>
+              <Link
+                href="/driver-register"
+                className="mt-3 text-sm font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
+              >
+                New Driver? Register
+              </Link>
             </div>
 
             <div className="glass-card p-8 text-center flex flex-col border-rose-100/80 hover:border-rose-300">
