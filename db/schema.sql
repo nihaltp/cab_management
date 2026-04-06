@@ -56,6 +56,31 @@ CREATE TABLE booking (
   CONSTRAINT booking_ibfk_2 FOREIGN KEY (cab_id) REFERENCES cabs (cab_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS booking_logs;
+CREATE TABLE booking_logs (
+  log_id int NOT NULL AUTO_INCREMENT,
+  booking_id int NOT NULL,
+  old_status varchar(20) DEFAULT NULL,
+  new_status varchar(20) DEFAULT NULL,
+  changed_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (log_id),
+  KEY booking_logs_booking_id_idx (booking_id),
+  CONSTRAINT booking_logs_booking_fk FOREIGN KEY (booking_id) REFERENCES booking (booking_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+DROP TRIGGER IF EXISTS booking_status_audit_trigger;
+DELIMITER $$
+CREATE TRIGGER booking_status_audit_trigger
+AFTER UPDATE ON booking
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.status <=> NEW.status) THEN
+    INSERT INTO booking_logs (booking_id, old_status, new_status, changed_at)
+    VALUES (NEW.booking_id, OLD.status, NEW.status, NOW());
+  END IF;
+END$$
+DELIMITER ;
+
 DROP VIEW IF EXISTS detailed_bookings;
 CREATE VIEW detailed_bookings AS
 SELECT
