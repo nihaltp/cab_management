@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { getCabsByDriver } from "@/lib/data/cabs";
 import { getBookingsByDriver } from "@/lib/data/bookings";
 import { getUsersByIds } from "@/lib/data/users";
@@ -25,6 +26,8 @@ export default async function DriverDashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  noStore();
+
   const session = await getSession();
   if (!session.driverId) redirect("/driver-login");
 
@@ -106,7 +109,7 @@ export default async function DriverDashboardPage({
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Welcome Card */}
-        <div className="glass-card p-10 relative overflow-hidden group">
+        <div className="glass-card p-10 relative overflow-hidden group z-20">
           <div className="relative z-10">
             <h1 className="text-3xl font-extrabold mb-2 text-slate-900 drop-shadow-sm">
               Welcome, <span className="text-emerald-600">{session.userName}</span>! 🚗
@@ -178,9 +181,9 @@ export default async function DriverDashboardPage({
           {cabRows.length > 0 && (
             <div className="mt-6 pt-6 border-t border-slate-200">
               <h3 className="text-sm font-bold text-slate-800 mb-3">Manage Your Cabs</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
                 {cabRows.map((cab) => (
-                  <div key={cab.cab_id} className="glass-panel rounded-xl p-4 border border-slate-200 flex items-center justify-between gap-4">
+                  <div key={cab.cab_id} className="rounded-xl p-4 border border-slate-200 flex items-center justify-between gap-4 bg-white/95 shadow-sm">
                     <div>
                       <div className="font-semibold text-slate-900">{cab.cab_number}</div>
                       <div className="text-xs text-slate-500 mt-1">

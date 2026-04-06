@@ -30,7 +30,8 @@ export async function getCabsByDriver(driverId: number) {
   const { data: cabRows, error } = await supabase
     .from("cabs")
     .select("cab_id, cab_number, cab_type, ac_type")
-    .eq("driver_id", driverId);
+    .eq("driver_id", driverId)
+    .order("cab_id", { ascending: false });
 
   if (error) {
     throw error;
